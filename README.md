@@ -1,6 +1,6 @@
 # fabiang/guetzli
 
-Docker container for Googles Perceptual JPEG encoder Guetzli.
+Docker container for Googles [Perceptual JPEG encoder Guetzli](https://github.com/google/guetzli).
 
 Run the container with:
 
