@@ -22,6 +22,7 @@ jobs:
       IMAGE_NAME_FULL: "fabiang/guetzli:${{ matrix.rewinged.version }}-alpine"
       IMAGE_NAME_MINOR: "fabiang/guetzli:${{ matrix.rewinged.version_minor }}-alpine"
       IMAGE_NAME_MAJOR: "fabiang/guetzli:${{ matrix.rewinged.version_major }}-alpine"
+      IMAGE_LATEST: "fabiang/guetzli:latest"
       DOCKER_BUILDKIT: 1
     runs-on: ubuntu-latest
     name: "Alpine v${{ matrix.rewinged.version }}"
@@ -49,6 +50,10 @@ jobs:
       - name: Tag Major
         if: "${{ matrix.rewinged.version_major != '' }}"
         run: docker tag '${{ env.IMAGE_NAME_FULL }}' '${{ env.IMAGE_NAME_MAJOR }}'
+      - name: Tag Latest
+        if: "${{ matrix.version.latest == true }}"
+        run: |
+          docker tag '${{ env.IMAGE_NAME_FULL }}' '${{ env.IMAGE_LATEST }}'
       - name: Docker Hub login
         if: "${{ github.ref == 'refs/heads/main' }}"
         uses: azure/docker-login@v1
@@ -67,3 +72,7 @@ jobs:
         if: "${{ matrix.rewinged.version_major != '' && github.ref == 'refs/heads/main' }}"
         run: |
           docker push '${{ env.IMAGE_NAME_MAJOR }}'
+      - name: Push Latest
+        if: "${{ matrix.version.latest == true && github.ref == 'refs/heads/main' }}"
+        run: |
+          docker push '${{ env.IMAGE_LATEST }}'
