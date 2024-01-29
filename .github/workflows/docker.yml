@@ -1,0 +1,69 @@
+name: Docker Image
+on:
+  push:
+    paths-ignore:
+      - "README.md"
+      - "LICENSE"
+      - ".editorconfig"
+      - ".github/workflows/auto-update.yml"
+  pull_request:
+jobs:
+  docker-image-alpine:
+    strategy:
+      matrix:
+        # MUST ORDER versions ascending
+        rewinged:
+          - version: "1.0.1"
+            version_minor: "1.0"
+            version_major: "1"
+            download_hash: "e52eb417a5c0fb5a3b08a858c8d10fa797627ada5373e203c196162d6a313697"
+            latest: true
+    env:
+      IMAGE_NAME_FULL: "fabiang/guetzli:${{ matrix.rewinged.version }}-alpine"
+      IMAGE_NAME_MINOR: "fabiang/guetzli:${{ matrix.rewinged.version_minor }}-alpine"
+      IMAGE_NAME_MAJOR: "fabiang/guetzli:${{ matrix.rewinged.version_major }}-alpine"
+      DOCKER_BUILDKIT: 1
+    runs-on: ubuntu-latest
+    name: "Alpine v${{ matrix.rewinged.version }}"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jpribyl/action-docker-layer-caching@v0.1.1
+        continue-on-error: true
+      - name: Build Image
+        run: |
+          docker build -f alpine/Dockerfile \
+            -t '${{ env.IMAGE_NAME_FULL }}' \
+            \
+            --build-arg 'GUETZLI_VERSION=${{ matrix.rewinged.version }}' \
+            --build-arg 'GUETZLI_CHECKSUM_SHA256=${{ matrix.rewinged.download_hash }}' \
+            .
+      - name: Download Test Image
+        run: |
+          curl --fail -L -o bees.png https://raw.githubusercontent.com/google/guetzli/master/tests/bees.png
+      - name: Test Image
+        run: |
+          docker run -i -v $(pwd):/test -w /test --rm ${{ env.IMAGE_NAME_FULL }} bees.png bees.jpg
+      - name: Tag Minor
+        if: "${{ matrix.rewinged.version_minor != '' }}"
+        run: docker tag '${{ env.IMAGE_NAME_FULL }}' '${{ env.IMAGE_NAME_MINOR }}'
+      - name: Tag Major
+        if: "${{ matrix.rewinged.version_major != '' }}"
+        run: docker tag '${{ env.IMAGE_NAME_FULL }}' '${{ env.IMAGE_NAME_MAJOR }}'
+      - name: Docker Hub login
+        if: "${{ github.ref == 'refs/heads/main' }}"
+        uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+      - name: Push Image
+        if: "${{ github.ref == 'refs/heads/main' }}"
+        run: |
+          docker push '${{ env.IMAGE_NAME_FULL }}'
+      - name: Push Image Minor
+        if: "${{ matrix.rewinged.version_minor != '' && github.ref == 'refs/heads/main' }}"
+        run: |
+          docker push '${{ env.IMAGE_NAME_MINOR }}'
+      - name: Push Image Major
+        if: "${{ matrix.rewinged.version_major != '' && github.ref == 'refs/heads/main' }}"
+        run: |
+          docker push '${{ env.IMAGE_NAME_MAJOR }}'
