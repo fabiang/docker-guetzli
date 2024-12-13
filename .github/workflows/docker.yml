@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     name: "Alpine v${{ matrix.guetzli.version }}"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: jpribyl/action-docker-layer-caching@v0.1.1
         continue-on-error: true
       - name: Build Image
